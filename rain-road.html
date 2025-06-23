@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Town Weather Forecast</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568; /* gray-600 */
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-full mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-cyan-400">Comparative Weather Forecast</h1>
+            <p class="text-gray-400 mt-1 text-sm">Enter town names separated by commas to compare their 14-day forecasts.</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
+            <input type="text" id="towns-input" class="flex-grow bg-gray-800 border border-gray-600 text-white placeholder-gray-500 text-base rounded-md focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5" placeholder="e.g. London, Paris, New York">
+            <button id="forecast-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-5 rounded-md text-base transition-colors duration-300 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                Get Forecast
+            </button>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="text-center my-10 hidden">
+             <div class="flex justify-center items-center gap-4">
+                <svg class="animate-spin h-8 w-8 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-xl text-gray-300">Fetching weather data...</span>
+            </div>
+        </div>
+        
+        <!-- Error Message -->
+        <div id="error-message" class="text-center my-10 hidden bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg max-w-2xl mx-auto">
+            <p id="error-text"></p>
+        </div>
+
+        <!-- Results Table -->
+        <div id="forecast-table-container" class="w-full custom-scrollbar overflow-x-auto bg-gray-800 rounded-lg shadow-xl">
+            <!-- Table will be rendered here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // DOM element references
+        const townsInput = document.getElementById('towns-input');
+        const forecastBtn = document.getElementById('forecast-btn');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const tableContainer = document.getElementById('forecast-table-container');
+        
+        // SVG Icons for weather metrics
+        //const rainIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block text-cyan-400"><path d="M16 13.25A4 4 0 0 0 12 6a4 4 0 0 0-4 7.25"/><path d="M12 12v8"/><path d="M12 22h.01"/></svg>`;
+        //const rainIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`;
+        const windIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block text-gray-400"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>`;
+        const tempIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block text-red-400"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>`;
+
+        // Event listener for the forecast button
+        forecastBtn.addEventListener('click', fetchForecasts);
+        townsInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchForecasts();
+            }
+        });
+
+        // URL parameter functions
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        function updateUrl(towns) {
+            const url = new URL(window.location);
+            if (towns && towns.length > 0) {
+                url.searchParams.set('towns', towns.join(','));
+            } else {
+                url.searchParams.delete('towns');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        // Load towns from URL on page load
+        function loadTownsFromUrl() {
+            const townsParam = getUrlParameter('towns');
+            if (townsParam) {
+                townsInput.value = townsParam;
+                fetchForecasts();
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', loadTownsFromUrl);
+
+        /**
+         * Main function to trigger the forecast fetching process.
+         */
+        async function fetchForecasts() {
+            const townNames = townsInput.value.split(',').map(t => t.trim()).filter(t => t);
+            if (townNames.length === 0) {
+                showError('Please enter at least one town name.');
+                return;
+            }
+            
+            // Update URL with current towns
+            updateUrl(townNames);
+            
+            showLoader(true);
+            showError(null);
+            tableContainer.innerHTML = '';
+            
+            try {
+                const weatherDataPromises = townNames.map(getWeatherForTown);
+                const results = await Promise.all(weatherDataPromises);
+                
+                const successfulResults = results.filter(r => r && !r.error);
+                const failedResults = results.filter(r => r && r.error);
+
+                if (successfulResults.length > 0) {
+                    renderTable(successfulResults);
+                } else {
+                     showError('Could not fetch weather data for any of the specified towns. Please check the names and try again.');
+                }
+                
+                if (failedResults.length > 0) {
+                    const failedTowns = failedResults.map(f => f.town).join(', ');
+                    showError(`Could not find location data for: ${failedTowns}. Displaying results for others.`);
+                }
+                
+            } catch (error) {
+                console.error("An unexpected error occurred:", error);
+                showError('An unexpected error occurred while fetching data. Please try again later.');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        /**
+         * Fetches geocoding and weather data for a single town.
+         */
+        async function getWeatherForTown(townName) {
+            try {
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(townName)}&count=1`);
+                if (!geoResponse.ok) throw new Error(`Geocoding failed for ${townName}`);
+                const geoData = await geoResponse.json();
+                
+                if (!geoData.results || geoData.results.length === 0) {
+                    console.warn(`No geocoding results for ${townName}`);
+                    return { town: townName, error: true };
+                }
+                const { latitude, longitude, name } = geoData.results[0];
+
+                const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto&forecast_days=14`;
+                const weatherResponse = await fetch(forecastUrl);
+                if (!weatherResponse.ok) throw new Error(`Weather forecast failed for ${townName}`);
+                const weatherData = await weatherResponse.json();
+
+                return { town: name, forecast: weatherData.daily };
+
+            } catch (error) {
+                console.error(`Error fetching data for ${townName}:`, error);
+                return { town: townName, error: true };
+            }
+        }
+        
+        /**
+         * Renders the data into a dense, information-rich table.
+         */
+        function renderTable(data) {
+            if (!data || data.length === 0) return;
+
+            const table = document.createElement('table');
+            table.className = 'w-full text-left text-xs';
+            
+            const thead = document.createElement('thead');
+            thead.className = 'bg-gray-700/50 text-xs text-cyan-300 uppercase tracking-wider';
+            
+            const headerRow = thead.insertRow();
+            
+            // Header for Town Name
+            const townHeader = document.createElement('th');
+            townHeader.className = 'p-2 sticky left-0 bg-gray-800 z-10';
+            townHeader.textContent = 'Town';
+            headerRow.appendChild(townHeader);
+            
+            const dates = data[0].forecast.time;
+            dates.forEach(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00');
+                const th = document.createElement('th');
+                th.className = 'p-2 font-normal text-center whitespace-nowrap';
+                th.innerHTML = `${date.toLocaleDateString('en-US', { weekday: 'short' })}<br><span class="text-gray-400">${date.toLocaleDateString('en-UK', { day: 'numeric', month: 'short' })}</span>`;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(thead);
+            
+            const tbody = document.createElement('tbody');
+            
+            data.forEach((townData, townIndex) => {
+                const row = tbody.insertRow();
+                row.className = 'border-t border-gray-700';
+
+                // Town name cell
+                const townCell = row.insertCell();
+                townCell.className = 'p-2 font-bold text-base text-white whitespace-nowrap sticky left-0 z-10';
+                townCell.classList.add(townIndex % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80');
+                townCell.textContent = townData.town;
+
+                // Daily forecast cells
+                for (let i = 0; i < dates.length; i++) {
+                    const dataCell = row.insertCell();
+                    dataCell.className = 'p-1.5 align-top';
+                    dataCell.classList.add(townIndex % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80');
+
+                    const minTemp = Math.round(townData.forecast.temperature_2m_min[i]);
+                    const maxTemp = Math.round(townData.forecast.temperature_2m_max[i]);
+                    const rain = townData.forecast.rain_sum[i].toFixed(1);
+                    const wind = Math.round(townData.forecast.wind_speed_10m_max[i]);
+                    
+                    dataCell.innerHTML = `
+                        <div class="flex flex-col gap-0.5 text-center">
+                            <div class="font-semibold text-white">${minTemp}°/${maxTemp}°</div>
+                            <div class="flex items-center justify-center gap-1 text-gray-300"> ${rain}</div>
+                            <div class="flex items-center justify-center gap-1 text-gray-300">${windIcon} ${wind}</div>
+                            
+                        </div>
+                    `;
+                }
+            });
+
+            table.appendChild(tbody);
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+        
+        function showLoader(visible) {
+            loader.classList.toggle('hidden', !visible);
+        }
+        
+        function showError(message) {
+            if (message) {
+                errorText.textContent = message;
+                errorMessage.classList.remove('hidden');
+            } else {
+                errorMessage.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
