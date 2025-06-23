@@ -168,23 +168,49 @@
             try {
                 // Parse town:country format
                 let searchQuery = townName;
-                let countryCode = '';
+                let fallbackQuery = null;
                 
                 if (townName.includes(':')) {
-                    const [town, country] = townName.split(':').map(s => s.trim());
-                    searchQuery = town;
-                    // You could add country code mapping here if needed, for now use the country as is
-                    searchQuery = `${town}, ${country}`;
+                    const [town, location] = townName.split(':').map(s => s.trim());
+                    // First try as "Town, Location" (assuming location is country)
+                    searchQuery = `${town}, ${location}`;
+                    // Prepare fallback query (assuming location is admin1/state/province)
+                    fallbackQuery = town;
                 }
                 
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1`);
+                // First attempt
+                let geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1`);
                 if (!geoResponse.ok) throw new Error(`Geocoding failed for ${townName}`);
-                const geoData = await geoResponse.json();
+                let geoData = await geoResponse.json();
+                
+                // If no results and we have a fallback, try the fallback approach
+                if ((!geoData.results || geoData.results.length === 0) && fallbackQuery) {
+                    console.log(`No results for "${searchQuery}", trying fallback "${fallbackQuery}"`);
+                    geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(fallbackQuery)}&count=10`);
+                    if (!geoResponse.ok) throw new Error(`Fallback geocoding failed for ${townName}`);
+                    geoData = await geoResponse.json();
+                    
+                    // Filter results by admin1 (state/province) matching the location part
+                    if (geoData.results && geoData.results.length > 0) {
+                        const [town, location] = townName.split(':').map(s => s.trim());
+                        const filteredResults = geoData.results.filter(result => 
+                            result.admin1 && result.admin1.toLowerCase().includes(location.toLowerCase())
+                        );
+                        
+                        if (filteredResults.length > 0) {
+                            geoData.results = [filteredResults[0]]; // Take the first match
+                        } else {
+                            // No admin1 match found, clear results
+                            geoData.results = [];
+                        }
+                    }
+                }
                 
                 if (!geoData.results || geoData.results.length === 0) {
                     console.warn(`No geocoding results for ${townName}`);
                     return { town: townName, error: true };
                 }
+                
                 const { latitude, longitude, name, country } = geoData.results[0];
 
                 const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto&forecast_days=14`;
