@@ -169,6 +169,7 @@
                 // Parse town:country format
                 let searchQuery = townName;
                 let fallbackQuery = null;
+                let usedFallback = false;
                 
                 if (townName.includes(':')) {
                     const [town, location] = townName.split(':').map(s => s.trim());
@@ -199,6 +200,7 @@
                         
                         if (filteredResults.length > 0) {
                             geoData.results = [filteredResults[0]]; // Take the first match
+                            usedFallback = true;
                         } else {
                             // No admin1 match found, clear results
                             geoData.results = [];
@@ -211,14 +213,17 @@
                     return { town: townName, error: true };
                 }
                 
-                const { latitude, longitude, name, country } = geoData.results[0];
+                const { latitude, longitude, name, country, admin1 } = geoData.results[0];
 
                 const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto&forecast_days=14`;
                 const weatherResponse = await fetch(forecastUrl);
                 if (!weatherResponse.ok) throw new Error(`Weather forecast failed for ${townName}`);
                 const weatherData = await weatherResponse.json();
 
-                return { town: name, country: country, forecast: weatherData.daily };
+                // Use admin1 for display if we used fallback, otherwise use country
+                const displayLocation = usedFallback && admin1 ? admin1 : country;
+
+                return { town: name, country: displayLocation, forecast: weatherData.daily };
 
             } catch (error) {
                 console.error(`Error fetching data for ${townName}:`, error);
