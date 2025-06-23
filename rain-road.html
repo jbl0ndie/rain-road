@@ -33,11 +33,12 @@
         <header class="text-center mb-6">
             <h1 class="text-3xl font-bold text-cyan-400">Comparative Weather Forecast</h1>
             <p class="text-gray-400 mt-1 text-sm">Enter town names separated by commas to compare their 14-day forecasts.</p>
+            <p class="text-gray-500 mt-1 text-xs">Tip: Use "Town:Country" format to specify a particular country (e.g. Paris:France or New York:United States)</p>
         </header>
 
         <!-- Input Section -->
         <div class="mb-6 flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
-            <input type="text" id="towns-input" class="flex-grow bg-gray-800 border border-gray-600 text-white placeholder-gray-500 text-base rounded-md focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5" placeholder="e.g. London, Paris, New York">
+            <input type="text" id="towns-input" class="flex-grow bg-gray-800 border border-gray-600 text-white placeholder-gray-500 text-base rounded-md focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5" placeholder="e.g. London, Paris:France, New York:USA">
             <button id="forecast-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-5 rounded-md text-base transition-colors duration-300 flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
                 Get Forecast
@@ -165,7 +166,18 @@
          */
         async function getWeatherForTown(townName) {
             try {
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(townName)}&count=1`);
+                // Parse town:country format
+                let searchQuery = townName;
+                let countryCode = '';
+                
+                if (townName.includes(':')) {
+                    const [town, country] = townName.split(':').map(s => s.trim());
+                    searchQuery = town;
+                    // You could add country code mapping here if needed, for now use the country as is
+                    searchQuery = `${town}, ${country}`;
+                }
+                
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1`);
                 if (!geoResponse.ok) throw new Error(`Geocoding failed for ${townName}`);
                 const geoData = await geoResponse.json();
                 
@@ -173,14 +185,14 @@
                     console.warn(`No geocoding results for ${townName}`);
                     return { town: townName, error: true };
                 }
-                const { latitude, longitude, name } = geoData.results[0];
+                const { latitude, longitude, name, country } = geoData.results[0];
 
                 const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto&forecast_days=14`;
                 const weatherResponse = await fetch(forecastUrl);
                 if (!weatherResponse.ok) throw new Error(`Weather forecast failed for ${townName}`);
                 const weatherData = await weatherResponse.json();
 
-                return { town: name, forecast: weatherData.daily };
+                return { town: name, country: country, forecast: weatherData.daily };
 
             } catch (error) {
                 console.error(`Error fetching data for ${townName}:`, error);
@@ -228,7 +240,12 @@
                 const townCell = row.insertCell();
                 townCell.className = 'p-2 font-bold text-base text-white whitespace-nowrap sticky left-0 z-10';
                 townCell.classList.add(townIndex % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80');
-                townCell.textContent = townData.town;
+                townCell.innerHTML = `
+                    <div class="flex flex-col">
+                        <div class="text-white">${townData.town}</div>
+                        <div class="text-gray-400 text-xs font-normal">${townData.country}</div>
+                    </div>
+                `;
 
                 // Daily forecast cells
                 for (let i = 0; i < dates.length; i++) {
