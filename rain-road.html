@@ -283,8 +283,8 @@
                     dataCell.className = 'p-1.5 align-top';
                     dataCell.classList.add(townIndex % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80');
 
-                    const minTemp = Math.round(townData.forecast.temperature_2m_min[i]);
                     const maxTemp = Math.round(townData.forecast.temperature_2m_max[i]);
+                    const minTemp = Math.round(townData.forecast.temperature_2m_min[i]);
                     const rain = townData.forecast.rain_sum[i].toFixed(1);
                     const wind = Math.round(townData.forecast.wind_speed_10m_max[i]);
                     
