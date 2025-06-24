@@ -283,14 +283,14 @@
                     dataCell.className = 'p-1.5 align-top';
                     dataCell.classList.add(townIndex % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/80');
 
-                    const minTemp = Math.round(townData.forecast.temperature_2m_min[i]);
                     const maxTemp = Math.round(townData.forecast.temperature_2m_max[i]);
+                    const minTemp = Math.round(townData.forecast.temperature_2m_min[i]);
                     const rain = townData.forecast.rain_sum[i].toFixed(1);
                     const wind = Math.round(townData.forecast.wind_speed_10m_max[i]);
                     
                     dataCell.innerHTML = `
                         <div class="flex flex-col gap-0.5">
-                            <div class="font-semibold text-white text-left">${minTemp}°/${maxTemp}°</div>
+                            <div class="font-semibold text-white text-left">${maxTemp}°/${minTemp}°</div>
                             <div class="flex items-center justify-start gap-1 text-gray-300">${rainIcon} ${rain}</div>
                             <div class="flex items-center justify-start gap-1 text-gray-300">${windIcon} ${wind}</div>
                             
