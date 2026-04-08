@@ -173,7 +173,7 @@
             yesterdayCard.innerHTML = `
                 <div class="card-header">Yesterday</div>
                 <div class="text-xs text-gray-400 mb-2">${yesterdayDate.toLocaleDateString('en-UK', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
-                <div class="temperature-large mb-2">${Math.round(today.temperature_2m_max[0])}°/${Math.round(today.temperature_2m_min[0])}°</div>
+                <div class="temperature-large mb-2">${Math.round(yesterday.temperature_2m_max[0])}°/${Math.round(yesterday.temperature_2m_min[0])}°</div>
                 <div class="flex flex-col gap-1">
                     <div class="weather-metric">${rainIcon} <span class="value">${yesterday.rain_sum[0].toFixed(1)} mm</span></div>
                     <div class="weather-metric">${windIcon} <span class="value">${Math.round(yesterday.wind_speed_10m_max[0])} mph</span></div>
