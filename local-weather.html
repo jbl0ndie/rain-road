@@ -233,33 +233,20 @@
 
             deltaCard.innerHTML = `
                 <div class="card-header">Delta</div>
-                <div class="flex flex-col gap-2">
-                    <div class="flex gap-2">
-                        ${formatDelta(deltaHigh, true)}
-                        <span class="text-gray-400">/</span>
-                        ${formatDelta(deltaLow, true)}
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${rainIcon}
-                        ${formatDelta(deltaRain, false)}
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${windIcon}
-                        ${formatDelta(deltaWind, false)}
-                    </div>
+                <div class="text-xs text-gray-400 mb-2">${yesterdayDate.toLocaleDateString('en-UK', { day: 'numeric', month: 'short' })} → ${todayDate.toLocaleDateString('en-UK', { day: 'numeric', month: 'short' })}</div>
+                <div class="temperature-large mb-2">
+                    <span class="${deltaHigh >= 0 ? 'text-green-400' : 'text-red-400'}">${deltaHigh >= 0 ? '↑' : '↓'}${Math.abs(Math.round(deltaHigh))}°</span>
+                    <span class="text-gray-400 mx-1">/</span>
+                    <span class="${deltaLow >= 0 ? 'text-green-400' : 'text-red-400'}">${deltaLow >= 0 ? '↑' : '↓'}${Math.abs(Math.round(deltaLow))}°</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <div class="weather-metric">${rainIcon} <span class="value ${deltaRain >= 0 ? 'text-green-400' : 'text-red-400'}">${deltaRain >= 0 ? '↑' : '↓'}${Math.abs(deltaRain).toFixed(1)}</span></div>
+                    <div class="weather-metric">${windIcon} <span class="value ${deltaWind >= 0 ? 'text-green-400' : 'text-red-400'}">${deltaWind >= 0 ? '↑' : '↓'}${Math.abs(Math.round(deltaWind))}</span></div>
                 </div>
             `;
 
             showLoader(false);
             weatherCards.classList.remove('hidden');
-        }
-
-        function formatDelta(value, isTemperature) {
-            const arrow = value >= 0 ? '↑' : '↓';
-            const absValue = Math.abs(value);
-            const displayValue = isTemperature ? Math.round(absValue) + '°' : absValue.toFixed(1);
-            const cssClass = value >= 0 ? 'up' : 'down';
-            return `<span class="delta-badge ${cssClass}">${arrow}${displayValue}</span>`;
         }
 
         function showLoader(visible) {
