@@ -138,9 +138,11 @@
                     return;
                 }
 
-                const { latitude, longitude, name } = geoData.results[0];
+                const { latitude, longitude, name, country } = geoData.results[0];
                 console.log('Found location:', name, latitude, longitude);
-                await fetchWeatherData(latitude, longitude, name);
+                const displayName = country ? `${name}, ${country}` : name;
+                const coordsStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                await fetchWeatherData(latitude, longitude, displayName, coordsStr);
             } catch (error) {
                 console.error('City search error:', error);
                 showError('Failed to fetch location data. Please try again.');
@@ -148,10 +150,11 @@
         }
 
         async function fetchWeatherByCoords(lat, lon) {
-            await fetchWeatherData(lat, lon, 'Your Location');
+            const coordsStr = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            await fetchWeatherData(lat, lon, 'Your Location', coordsStr);
         }
 
-        async function fetchWeatherData(lat, lon, locationName) {
+        async function fetchWeatherData(lat, lon, locationName, coordsStr = '') {
             try {
                 console.log('Fetching weather for:', lat, lon);
                 const [todayResponse, yesterdayResponse] = await Promise.all([
@@ -169,7 +172,7 @@
                 const yesterdayData = await yesterdayResponse.json();
 
                 console.log('Weather data fetched successfully');
-                renderWeatherCards(yesterdayData.daily, todayData.daily);
+                renderWeatherCards(yesterdayData.daily, todayData.daily, locationName, coordsStr);
             } catch (error) {
                 console.error('Weather fetch error:', error);
                 showError('Failed to fetch weather data. Please try again.');
@@ -182,7 +185,9 @@
             return date.toISOString().split('T')[0];
         }
 
-        function renderWeatherCards(yesterday, today) {
+        function renderWeatherCards(yesterday, today, locationName, coordsStr) {
+            document.getElementById('location-name').textContent = locationName;
+            document.getElementById('location-coords').textContent = coordsStr;
             const yesterdayDate = new Date(yesterday.time[0] + 'T00:00:00');
             const todayDate = new Date(today.time[0] + 'T00:00:00');
 
