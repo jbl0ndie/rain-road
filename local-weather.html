@@ -151,7 +151,21 @@
 
         async function fetchWeatherByCoords(lat, lon) {
             const coordsStr = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-            await fetchWeatherData(lat, lon, 'Your Location', coordsStr);
+            try {
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${lat}&longitude=${lon}&count=1`);
+                if (geoResponse.ok) {
+                    const geoData = await geoResponse.json();
+                    if (geoData.results && geoData.results.length > 0) {
+                        const { name, country } = geoData.results[0];
+                        const displayName = country ? `${name}, ${country}` : name;
+                        await fetchWeatherData(lat, lon, displayName, coordsStr);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Reverse geocoding failed:', e);
+            }
+            await fetchWeatherData(lat, lon, coordsStr, coordsStr);
         }
 
         async function fetchWeatherData(lat, lon, locationName, coordsStr = '') {
@@ -219,20 +233,17 @@
             deltaCard.innerHTML = `
                 <div class="card-header">Delta</div>
                 <div class="flex flex-col gap-2">
-                    <div>
-                        <div class="text-xs text-gray-500 mb-1">Temperature</div>
-                        <div class="flex gap-2">
-                            ${formatDelta(deltaHigh, true)}
-                            <span class="text-gray-400">/</span>
-                            ${formatDelta(deltaLow, true)}
-                        </div>
+                    <div class="flex gap-2">
+                        ${formatDelta(deltaHigh, true)}
+                        <span class="text-gray-400">/</span>
+                        ${formatDelta(deltaLow, true)}
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="text-xs text-gray-500">Rain</div>
+                        ${rainIcon}
                         ${formatDelta(deltaRain, false)}
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="text-xs text-gray-500">Wind</div>
+                        ${windIcon}
                         ${formatDelta(deltaWind, false)}
                     </div>
                 </div>
