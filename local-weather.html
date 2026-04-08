@@ -152,7 +152,7 @@
                 console.log('Fetching weather for:', lat, lon);
                 const [todayResponse, yesterdayResponse] = await Promise.all([
                     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto&forecast_days=1`),
-                    fetch(`https://api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${getYesterdayDate()}&end_date=${getYesterdayDate()}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto`)
+                    fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${getYesterdayDate()}&end_date=${getYesterdayDate()}&daily=temperature_2m_max,temperature_2m_min,rain_sum,wind_speed_10m_max&temperature_unit=celsius&wind_speed_unit=mph&timezone=auto`)
                 ]);
 
                 console.log('Today response:', todayResponse.status, todayResponse.ok);
